@@ -16,48 +16,18 @@ import {
 
 export const INITIAL_USER_SESSIONS: UserSession[] = [
   {
-    id: 'usr-admin-agt',
-    name: 'Administração Geral',
-    email: 'agtramposof@gmail.com',
-    role: 'SUPER_ADMIN',
-    isVerifiedAdminEmail: true,
-  },
-  {
     id: 'usr-admin-tramposshop',
-    name: 'Administração Geral',
+    name: 'Administração Geral (Super Admin)',
     email: 'tramposshop@gmail.com',
     role: 'SUPER_ADMIN',
     isVerifiedAdminEmail: true,
   },
   {
-    id: 'usr-assessoria',
-    name: 'Assessoria ATR Studio',
-    email: 'assessoria@ambienteslimpos.com.br',
-    role: 'ASSESSORIA',
+    id: 'usr-admin-agt',
+    name: 'Administração Geral (Super Admin)',
+    email: 'agtramposof@gmail.com',
+    role: 'SUPER_ADMIN',
     isVerifiedAdminEmail: true,
-  },
-  {
-    id: 'usr-atendimento',
-    name: 'Camila Rocha (Atendimento)',
-    email: 'atendimento@ambienteslimpos.com.br',
-    role: 'ATENDIMENTO',
-    isVerifiedAdminEmail: false,
-  },
-  {
-    id: 'usr-supervisor',
-    name: 'Juliana Mendes (Supervisão)',
-    email: 'supervisao@ambienteslimpos.com.br',
-    role: 'SUPERVISOR',
-    isVerifiedAdminEmail: false,
-  },
-  {
-    id: 'usr-colaborador',
-    name: 'Maria Silva (Líder Equipe Alfa)',
-    email: 'maria.silva@ambienteslimpos.com.br',
-    role: 'COLABORADOR',
-    isVerifiedAdminEmail: false,
-    teamId: 'team-alfa',
-    assignedStaffId: 'stf-01',
   },
 ];
 

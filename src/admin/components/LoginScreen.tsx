@@ -81,13 +81,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu.email@empresa.com"
+                  placeholder="admin@exemplo.com"
                   autoComplete="email"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
                 />
               </div>
               <p className="text-[10px] text-slate-400 mt-1">
-                Acesso restrito validado por e-mail institucional.
+                Acesso restrito e exclusivo para Super Administradores cadastrados.
               </p>
             </div>
 
