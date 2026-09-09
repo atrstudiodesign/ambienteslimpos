@@ -41,9 +41,9 @@ export const DocumentsRestrictedView: React.FC = () => {
             <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
               Credencial Exigida:
             </div>
-            <div className="text-amber-400 font-bold">E-mail: agtramposof@gmail.com</div>
+            <div className="text-amber-400 font-bold">Administrador Geral Validado</div>
             <div className="text-slate-400 text-[11px]">
-              Usuário atual: {currentUser.name} ({currentUser.email} - {currentUser.role})
+              Usuário ativo: {currentUser.name} ({currentUser.role})
             </div>
           </div>
 
@@ -52,7 +52,7 @@ export const DocumentsRestrictedView: React.FC = () => {
               onClick={() => switchUserRole('SUPER_ADMIN')}
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg transition-all cursor-pointer"
             >
-              Autenticar como Admin Geral (agtramposof@gmail.com)
+              Autenticar Acesso de Administrador
             </button>
           </div>
         </div>

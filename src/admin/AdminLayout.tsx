@@ -30,11 +30,11 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToSite }) => {
-  const { currentUser, activeModule } = useAdmin();
+  const { currentUser, activeModule, isLoggedIn } = useAdmin();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // If not logged in, render the login authentication screen
-  if (!currentUser.isAuthenticated) {
+  if (!isLoggedIn || !currentUser || !currentUser.isAuthenticated) {
     return <LoginScreen onBackToSite={onBackToSite} />;
   }
 

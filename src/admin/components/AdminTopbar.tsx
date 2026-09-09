@@ -40,36 +40,31 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
 
-  const roleOptions: { role: UserRole; label: string; desc: string; email: string }[] = [
+  const roleOptions: { role: UserRole; label: string; desc: string }[] = [
     {
       role: 'SUPER_ADMIN',
       label: 'Super Admin (Proprietário)',
       desc: 'Acesso total, contratos e financeiro',
-      email: 'agtramposof@gmail.com',
     },
     {
       role: 'ASSESSORIA',
       label: 'Assessoria ATR Studio',
       desc: 'Contratos, governança e financeiro',
-      email: 'assessoria@ambienteslimpos.com.br',
     },
     {
       role: 'ATENDIMENTO',
       label: 'Atendimento / CRM',
       desc: 'Leads, clientes, agenda e orçamentos',
-      email: 'atendimento@ambienteslimpos.com.br',
     },
     {
       role: 'SUPERVISOR',
       label: 'Supervisão de Qualidade',
       desc: 'Checklists, vistorias e equipes',
-      email: 'supervisao@ambienteslimpos.com.br',
     },
     {
       role: 'COLABORADOR',
       label: 'Colaborador Operacional',
       desc: 'Visão simples de execução de serviço',
-      email: 'maria.silva@ambienteslimpos.com.br',
     },
   ];
 
@@ -231,7 +226,6 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
                     <div>
                       <div className="font-bold">{opt.label}</div>
                       <div className="text-[10px] text-slate-600">{opt.desc}</div>
-                      <div className="text-[10px] text-cyan-800 font-mono mt-0.5">{opt.email}</div>
                     </div>
                     {currentUser.role === opt.role && (
                       <Check className="w-4 h-4 text-cyan-700 shrink-0 mt-0.5" />

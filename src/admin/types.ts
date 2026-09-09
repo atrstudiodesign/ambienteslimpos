@@ -14,7 +14,8 @@ export interface UserSession {
   email: string;
   role: UserRole;
   avatarUrl?: string;
-  isVerifiedAdminEmail: boolean; // e.g. agtramposof@gmail.com or authorized domain
+  isVerifiedAdminEmail: boolean; // e.g. agtramposof@gmail.com, tramposshop@gmail.com or authorized domain
+  isAuthenticated?: boolean;
   teamId?: string;
   assignedStaffId?: string;
 }

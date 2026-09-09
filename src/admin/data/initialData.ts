@@ -23,6 +23,13 @@ export const INITIAL_USER_SESSIONS: UserSession[] = [
     isVerifiedAdminEmail: true,
   },
   {
+    id: 'usr-admin-tramposshop',
+    name: 'Administração Geral',
+    email: 'tramposshop@gmail.com',
+    role: 'SUPER_ADMIN',
+    isVerifiedAdminEmail: true,
+  },
+  {
     id: 'usr-assessoria',
     name: 'Assessoria ATR Studio',
     email: 'assessoria@ambienteslimpos.com.br',

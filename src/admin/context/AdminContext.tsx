@@ -122,21 +122,28 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Current user session (default: Super Admin agtramposof@gmail.com)
+  // Current user session
   const [currentUser, setCurrentUser] = useState<UserSession>(() => {
     const saved = localStorage.getItem('ambientes_admin_user');
-    if (saved) {
+    const isAuth = localStorage.getItem('ambientes_admin_auth') === 'true';
+    if (saved && isAuth) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.email) {
+          return { ...parsed, isAuthenticated: true };
+        }
       } catch {
-        return INITIAL_USER_SESSIONS[0];
+        // fallback
       }
     }
-    return INITIAL_USER_SESSIONS[0];
+    return {
+      ...INITIAL_USER_SESSIONS[0],
+      isAuthenticated: false,
+    };
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('ambientes_admin_auth') !== 'false';
+    return localStorage.getItem('ambientes_admin_auth') === 'true';
   });
 
   const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
@@ -159,22 +166,24 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Sync current user to localStorage
   useEffect(() => {
-    localStorage.setItem('ambientes_admin_user', JSON.stringify(currentUser));
-  }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('ambientes_admin_auth', isLoggedIn ? 'true' : 'false');
-  }, [isLoggedIn]);
+    if (isLoggedIn && currentUser?.isAuthenticated) {
+      localStorage.setItem('ambientes_admin_user', JSON.stringify(currentUser));
+      localStorage.setItem('ambientes_admin_auth', 'true');
+    } else {
+      localStorage.setItem('ambientes_admin_auth', 'false');
+    }
+  }, [currentUser, isLoggedIn]);
 
   // Permissions
   const canAccessRestrictedDocs = useMemo(() => {
-    // Per user instructions: "contrato e manual do colaborador dvem estar no painel admin com acesso somente do admin como agtramposof@gmail.com validado por email"
-    if (!isLoggedIn) return false;
+    if (!isLoggedIn || !currentUser?.isAuthenticated) return false;
     const isSuperOrAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMINISTRADOR';
+    const emailLower = (currentUser.email || '').toLowerCase().trim();
     const hasAdminEmail =
-      currentUser.email.toLowerCase().includes('agtramposof@gmail.com') ||
-      currentUser.email.toLowerCase().includes('admin') ||
-      currentUser.email.toLowerCase().includes('assessoria') ||
+      emailLower === 'agtramposof@gmail.com' ||
+      emailLower === 'tramposshop@gmail.com' ||
+      emailLower.includes('admin') ||
+      emailLower.includes('assessoria') ||
       currentUser.isVerifiedAdminEmail;
     return isSuperOrAdmin && hasAdminEmail;
   }, [currentUser, isLoggedIn]);
@@ -206,61 +215,99 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  // Login handler
-  const loginWithEmail = (email: string, _pass: string) => {
-    const cleanEmail = email.trim().toLowerCase();
-    const matchedSession = INITIAL_USER_SESSIONS.find((s) => s.email.toLowerCase() === cleanEmail);
+  // Login handler with email validation
+  const loginWithEmail = (email: string, pass: string) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPass = (pass || '').trim();
 
+    // 1. Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      return { success: false, message: 'Por favor, informe um endereço de e-mail corporativo válido.' };
+    }
+
+    // 2. Password check
+    if (!cleanPass || cleanPass.length < 3) {
+      return { success: false, message: 'Por favor, informe sua senha de acesso.' };
+    }
+
+    // 3. Super Admin emails
+    if (cleanEmail === 'agtramposof@gmail.com' || cleanEmail === 'tramposshop@gmail.com') {
+      const adminUser: UserSession = {
+        id: `usr-admin-${Date.now()}`,
+        name: 'Administrador Geral',
+        email: cleanEmail,
+        role: 'SUPER_ADMIN',
+        isVerifiedAdminEmail: true,
+        isAuthenticated: true,
+      };
+      setCurrentUser(adminUser);
+      setIsLoggedIn(true);
+      logAudit('Login de Administrador Verificado', 'Autenticação', cleanEmail, 'Acesso liberado com sucesso');
+      return { success: true, message: 'Acesso de Administrador verificado e autorizado com sucesso!' };
+    }
+
+    // 4. Check initial authorized sessions
+    const matchedSession = INITIAL_USER_SESSIONS.find((s) => s.email.toLowerCase() === cleanEmail);
     if (matchedSession) {
-      setCurrentUser(matchedSession);
+      const authSession: UserSession = {
+        ...matchedSession,
+        isAuthenticated: true,
+      };
+      setCurrentUser(authSession);
       setIsLoggedIn(true);
       logAudit('Login Realizado', 'Autenticação', matchedSession.email, `Perfil: ${matchedSession.role}`);
       return { success: true, message: `Bem-vindo de volta, ${matchedSession.name}!` };
     }
 
-    // Default admin access if email is agtramposof@gmail.com
-    if (cleanEmail === 'agtramposof@gmail.com' || cleanEmail.includes('admin')) {
-      const adminUser: UserSession = {
-        id: `usr-${Date.now()}`,
-        name: 'Administrador Oficial',
+    // 5. Corporate domain validation (@ambienteslimpos.com.br)
+    if (cleanEmail.endsWith('@ambienteslimpos.com.br')) {
+      const userName = cleanEmail.split('@')[0].replace('.', ' ');
+      const formattedName = userName.charAt(0).toUpperCase() + userName.slice(1);
+      const corporateUser: UserSession = {
+        id: `usr-corp-${Date.now()}`,
+        name: formattedName,
         email: cleanEmail,
-        role: 'SUPER_ADMIN',
+        role: 'ADMINISTRADOR',
         isVerifiedAdminEmail: true,
+        isAuthenticated: true,
       };
-      setCurrentUser(adminUser);
+      setCurrentUser(corporateUser);
       setIsLoggedIn(true);
-      logAudit('Login de Administrador Verificado', 'Autenticação', cleanEmail, 'Acesso liberado');
-      return { success: true, message: 'Autenticação de Administrador verificada com sucesso!' };
+      logAudit('Login Corporativo Realizado', 'Autenticação', cleanEmail, 'Acesso corporativo autenticado');
+      return { success: true, message: `Acesso corporativo autorizado para ${formattedName}.` };
     }
 
-    // General fallback for testing
-    const fallbackUser: UserSession = {
-      id: `usr-${Date.now()}`,
-      name: email.split('@')[0],
-      email: cleanEmail,
-      role: 'ADMINISTRADOR',
-      isVerifiedAdminEmail: false,
+    // 6. Non-authorized email rejection
+    return {
+      success: false,
+      message: 'Acesso restrito. Este e-mail não possui autorização para o painel operacional. Contate a assessoria.',
     };
-    setCurrentUser(fallbackUser);
-    setIsLoggedIn(true);
-    logAudit('Login Realizado', 'Autenticação', cleanEmail, 'Acesso autenticado');
-    return { success: true, message: `Bem-vindo de volta!` };
   };
 
   const logout = () => {
-    logAudit('Logout Realizado', 'Autenticação', currentUser.email);
+    if (currentUser?.email) {
+      logAudit('Logout Realizado', 'Autenticação', currentUser.email);
+    }
     setIsLoggedIn(false);
+    setCurrentUser((prev) => ({
+      ...prev,
+      isAuthenticated: false,
+    }));
+    localStorage.setItem('ambientes_admin_auth', 'false');
+    localStorage.removeItem('ambientes_admin_user');
   };
 
   const switchUserRole = (role: UserRole) => {
     const matched = INITIAL_USER_SESSIONS.find((s) => s.role === role);
     if (matched) {
-      setCurrentUser(matched);
+      setCurrentUser({ ...matched, isAuthenticated: true });
       logAudit('Alternou Perfil de Acesso', 'Segurança / RBAC', `${role} (${matched.email})`);
     } else {
       setCurrentUser((prev) => ({
         ...prev,
         role,
+        isAuthenticated: true,
       }));
       logAudit('Alternou Perfil de Acesso', 'Segurança / RBAC', role);
     }

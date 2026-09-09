@@ -123,20 +123,9 @@ export const Footer: React.FC<FooterProps> = ({ onOpenModal, onOpenAdmin }) => {
           <div className="lg:col-span-4 space-y-3">
             <h4 className="text-white font-bold uppercase tracking-wider text-xs flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Modelos & Conformidade</span>
+              <span>Termos & Conformidade</span>
             </h4>
             <ul className="space-y-2 text-slate-300">
-              <li>
-                <button
-                  onClick={() => {
-                    analytics.track('cta_click', 'footer_open_contract');
-                    onOpenModal('contract');
-                  }}
-                  className="hover:text-cyan-300 text-left transition-colors cursor-pointer"
-                >
-                  Contrato de Prestação de Serviços (Modelo)
-                </button>
-              </li>
               <li>
                 <button
                   onClick={() => {
@@ -168,17 +157,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenModal, onOpenAdmin }) => {
                   className="hover:text-cyan-300 text-left transition-colors cursor-pointer"
                 >
                   Aviso Legal
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    analytics.track('cta_click', 'footer_open_manual');
-                    onOpenModal('manual');
-                  }}
-                  className="hover:text-cyan-300 text-left transition-colors cursor-pointer"
-                >
-                  Manual do Colaborador (Padrão de Atendimento)
                 </button>
               </li>
               <li>
