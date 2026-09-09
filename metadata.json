@@ -1,0 +1,6 @@
+{
+  "name": "Ambientes Limpos - Serviços de Limpeza Profissional",
+  "description": "Serviços profissionais de limpeza residencial e empresarial em São Paulo e Zona Leste. Organização, cuidado, eficiência e sofisticação para casas, empresas e lojas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
