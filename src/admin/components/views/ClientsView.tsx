@@ -13,6 +13,7 @@ import {
   Calendar,
   ChevronRight,
   ShieldAlert,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import { Client, ClientLocation } from '../../types';
@@ -89,13 +90,26 @@ export const ClientsView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsNewClientModalOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Novo Cliente</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setActiveModule('sheets')}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Sincronizar base de clientes com o Google Sheets"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Google Sheets</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsNewClientModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Novo Cliente</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Grid: Client List on left, Full Dossier on right */}

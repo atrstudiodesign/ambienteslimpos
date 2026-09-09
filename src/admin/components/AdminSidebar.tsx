@@ -157,6 +157,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           icon: BarChart3,
         },
         {
+          id: 'sheets',
+          label: 'Google Sheets',
+          icon: FileSpreadsheet,
+          badge: 'Cloud',
+        },
+        {
           id: 'communication',
           label: 'Mensagens WhatsApp',
           icon: ExternalLink,

@@ -23,6 +23,7 @@ import { CommunicationView } from './components/views/CommunicationView';
 import { NotificationsView } from './components/views/NotificationsView';
 import { AuditView } from './components/views/AuditView';
 import { SettingsView } from './components/views/SettingsView';
+import { GoogleSheetsView } from './components/views/GoogleSheetsView';
 
 interface AdminLayoutProps {
   onBackToSite: () => void;
@@ -66,6 +67,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToSite }) => {
         return <DocumentsRestrictedView />;
       case 'reports':
         return <ReportsView />;
+      case 'sheets':
+        return <GoogleSheetsView />;
       case 'communication':
         return <CommunicationView />;
       case 'notifications':

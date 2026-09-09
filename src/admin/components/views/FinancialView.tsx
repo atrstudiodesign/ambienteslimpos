@@ -11,6 +11,7 @@ import {
   Building2,
   FileCheck2,
   DollarSign,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import { FinancialReceivable } from '../../types';
@@ -21,6 +22,7 @@ export const FinancialView: React.FC = () => {
     contracts,
     markReceivableAsPaid,
     canViewFinancials,
+    setActiveModule,
   } = useAdmin();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,13 +72,25 @@ export const FinancialView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => window.print()}
-          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Relatório Financeiro</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setActiveModule('sheets')}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Exportar faturamento para o Google Sheets"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Google Sheets</span>
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Relatório Financeiro</span>
+          </button>
+        </div>
       </div>
 
       {/* Metric Cards */}

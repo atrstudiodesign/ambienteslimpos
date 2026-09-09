@@ -16,17 +16,24 @@ export const BRAND_CONFIG = {
     'Limpeza profissional com organização, eficiência e cuidado em cada detalhe.',
 
   contacts: {
+    whatsappPrincipal: '+5511939026928',
     whatsappCommercial: '(11) 93902-6928',
     whatsappCommercialClean: '5511939026928',
     assessoria: '(11) 93902-6928',
     assessoriaClean: '5511939026928',
-    assessoriaEmpresa: 'ATR Studio Assessoria',
+    assessoriaEmpresa: 'ATR studio assessoria',
     cnpj: '57.514.866/0001-38',
     email: 'contato@ambienteslimpos.com.br',
     instagram: 'https://instagram.com/ambienteslimpos.sp',
     cidade: 'São Paulo — SP',
     regiaoPrincipal: 'Zona Leste (Itaim Paulista, São Miguel Paulista, Guaianases, Ferraz de Vasconcelos e regiões próximas)',
     targetPhoneFull: '+5511939026928',
+  },
+
+  footerInfo: {
+    cnpj: '57.514.866/0001-38',
+    nome: 'ATR studio assessoria',
+    whatsappPrincipal: '+5511939026928',
   },
 
   /** Helper para redirecionar qualquer ação CTA diretamente para o WhatsApp oficial */

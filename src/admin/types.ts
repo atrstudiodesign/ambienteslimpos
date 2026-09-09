@@ -34,6 +34,7 @@ export type AdminModule =
   | 'financial'
   | 'documents'
   | 'reports'
+  | 'sheets' // Google Sheets integration
   | 'communication'
   | 'notifications'
   | 'audit'
