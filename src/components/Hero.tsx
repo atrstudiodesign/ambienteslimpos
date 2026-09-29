@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, Phone, ArrowRight, ShieldCheck, Heart, Sparkles, Star } from 'lucide-react';
+import { MessageCircle, Phone, ArrowRight, Heart, Sparkles } from 'lucide-react';
 import { BRAND_CONFIG } from '../config/brandConfig';
 import { BRAND_IMAGES } from '../assets/images';
 import { AmbientesLimposLogo } from './AmbientesLimposLogo';
@@ -30,9 +30,19 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
       id="inicio"
       className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-gradient-to-b from-[#08182f] via-[#0b2447] to-[#071933] text-white overflow-hidden"
     >
-      {/* Background ambient lighting effects */}
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Full-bleed hero photography: right half, fading smoothly into the navy content area */}
+      <div className="absolute inset-y-0 right-0 w-full lg:w-[58%] pointer-events-none" aria-hidden="true">
+        <img
+          src={BRAND_IMAGES.heroTeam}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          loading="eager"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#08182f] via-[#08182f]/55 to-transparent lg:from-[#08182f] lg:via-[#08182f]/25 lg:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#08182f]/35 via-transparent to-[#071933]/70" />
+      </div>
+      <div className="absolute inset-0 bg-[#08182f]/75 lg:bg-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[420px] h-[420px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Banner Tagline Row from the Official Flyer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 mb-6 sm:mb-8">
@@ -52,10 +62,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center min-h-[620px]">
           
           {/* Left Column: Official Logo, Headlines & Direct CTA */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-6 py-8 lg:py-14 relative z-10">
             
             {/* Logo oficial fiel à marca */}
             <div className="p-4 sm:p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 inline-block shadow-xl">
@@ -137,51 +147,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
 
           </div>
 
-          {/* Right Column: Exact Photography of the Two Specialists in Uniform */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md lg:max-w-none">
-              
-              {/* Golden and Cyan Ambient Halo */}
-              <div className="absolute -inset-2 bg-gradient-to-tr from-cyan-500/30 via-amber-400/20 to-sky-400/30 rounded-3xl blur-xl opacity-75" />
-
-              <div className="relative rounded-3xl overflow-hidden border-2 border-amber-400/40 bg-slate-900 shadow-2xl">
-                <img
-                  src={BRAND_IMAGES.heroTeam}
-                  alt="Profissionais especialistas da Ambientes Limpos uniformizadas com avental oficial e luvas azuis"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-auto object-cover object-center transform hover:scale-102 transition-transform duration-500"
-                  loading="eager"
-                  width={600}
-                  height={500}
-                />
-
-                {/* Floating Bottom Card */}
-                <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-[#08182f]/90 backdrop-blur-md border border-amber-400/30 shadow-xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0 border border-cyan-400/30">
-                      <ShieldCheck className="w-6 h-6 text-cyan-300" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-black text-white uppercase tracking-wider">
-                        Equipe Oficial Ambientes Limpos
-                      </div>
-                      <p className="text-[11px] text-cyan-300 font-medium">
-                        Uniformizadas • Luvas • Produtos Profissionais
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleWhatsApp('hero_image_badge_wa')}
-                    className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs uppercase cursor-pointer"
-                  >
-                    Chamar
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
+          {/* The photography is intentionally full-bleed in the section background.
+              No card, frame or boxed image: the left edge dissolves into the navy hero. */}
+          <div className="hidden lg:block lg:col-span-5" aria-hidden="true" />
 
         </div>
       </div>
