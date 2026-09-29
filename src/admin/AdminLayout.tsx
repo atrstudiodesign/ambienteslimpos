@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAdmin } from './context/AdminContext';
 import { AdminSidebar } from './components/AdminSidebar';
 import { AdminTopbar } from './components/AdminTopbar';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { LoginScreen } from './components/LoginScreen';
+import { defaultModuleForRole } from './rbac';
 
 // Views
 import { DashboardView } from './components/views/DashboardView';
@@ -30,8 +31,14 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToSite }) => {
-  const { currentUser, activeModule, isLoggedIn } = useAdmin();
+  const { currentUser, activeModule, setActiveModule, isLoggedIn, canAccessModule } = useAdmin();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.isAuthenticated && !canAccessModule(activeModule)) {
+      setActiveModule(defaultModuleForRole(currentUser.role));
+    }
+  }, [activeModule, currentUser, isLoggedIn]);
 
   // If not logged in, render the login authentication screen
   if (!isLoggedIn || !currentUser || !currentUser.isAuthenticated) {
@@ -39,7 +46,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToSite }) => {
   }
 
   const renderActiveModule = () => {
-    switch (activeModule) {
+    const permittedModule = canAccessModule(activeModule) ? activeModule : defaultModuleForRole(currentUser.role);
+    switch (permittedModule) {
       case 'dashboard':
         return <DashboardView />;
       case 'agenda':
