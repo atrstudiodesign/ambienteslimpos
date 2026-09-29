@@ -27,23 +27,28 @@ import { LegalModals } from './components/LegalModals';
 import { ActiveModal } from './types';
 import { AdminProvider } from './admin/context/AdminContext';
 import { AdminLayout } from './admin/AdminLayout';
+import { ProductLanding } from './product/ProductLanding';
 
 export default function App() {
-  const [viewMode, setViewMode] = useState<'site' | 'admin'>('site');
+  const [viewMode, setViewMode] = useState<'site' | 'admin' | 'product'>(() => window.location.pathname === '/sistema' ? 'product' : 'site');
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [quoteService, setQuoteService] = useState<string>('');
   const [quoteProperty, setQuoteProperty] = useState<string>('');
   const [quoteRegion, setQuoteRegion] = useState<string>('');
 
   useEffect(() => {
-    // Check if the URL hash requests admin directly
+    // Resolve direct links for the public site, product landing page and admin.
     if (window.location.hash === '#admin') {
       setViewMode('admin');
+    } else if (window.location.pathname === '/sistema') {
+      setViewMode('product');
     }
 
     const handleHashChange = () => {
       if (window.location.hash === '#admin') {
         setViewMode('admin');
+      } else if (window.location.pathname === '/sistema') {
+        setViewMode('product');
       } else if (window.location.hash === '#site' || window.location.hash === '#inicio') {
         setViewMode('site');
       }
@@ -60,7 +65,13 @@ export default function App() {
 
   const handleBackToSite = () => {
     setViewMode('site');
-    window.location.hash = '#inicio';
+    window.history.pushState({}, '', '/#inicio');
+  };
+
+  const handleOpenProduct = () => {
+    setViewMode('product');
+    window.history.pushState({}, '', '/sistema');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToQuote = (service?: string, property?: string, region?: string) => {
@@ -78,6 +89,8 @@ export default function App() {
     <AdminProvider>
       {viewMode === 'admin' ? (
         <AdminLayout onBackToSite={handleBackToSite} />
+      ) : viewMode === 'product' ? (
+        <ProductLanding onOpenDemo={handleOpenAdmin} onBackToSite={handleBackToSite} />
       ) : (
         <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-cyan-500 selection:text-white antialiased">
           {/* 1. Header with navigation */}
@@ -145,6 +158,18 @@ export default function App() {
             {/* 24. CTA Final */}
             <FinalCTA onOpenQuote={() => scrollToQuote()} />
           </main>
+
+          <section className="bg-slate-950 px-5 py-8 text-white">
+            <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-400">Tecnologia ATR Studio</div>
+                <div className="mt-1 text-lg font-black">Conheça o sistema usado para organizar a operação.</div>
+              </div>
+              <button onClick={handleOpenProduct} className="rounded-xl bg-cyan-500 px-5 py-3 text-xs font-black text-slate-950 hover:bg-cyan-400">
+                Conhecer o sistema
+              </button>
+            </div>
+          </section>
 
           {/* Footer com Links Legais e NAP */}
           <Footer
