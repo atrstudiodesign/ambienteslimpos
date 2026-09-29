@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '../../services/googleSheetsService';
+import { canRoleAccessModule, defaultModuleForRole } from '../rbac';
 import {
   UserSession,
   UserRole,
@@ -39,7 +42,8 @@ interface AdminContextType {
   currentUser: UserSession;
   setCurrentUser: (user: UserSession) => void;
   switchUserRole: (role: UserRole) => void;
-  loginWithEmail: (email: string, pass: string) => { success: boolean; message: string };
+  loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  enterDemoMode: () => void;
   logout: () => void;
   isLoggedIn: boolean;
 
@@ -115,201 +119,24 @@ interface AdminContextType {
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
 
-  // Permissions check
-  canAccessRestrictedDocs: boolean;
-  canViewFinancials: boolean;
-  canEditContracts: boolean;
-}
+  // RBAC permissions are enforced in navigation and module rendering.
+  const canAccessModule = (module: AdminModule) =>
+    isLoggedIn && !!currentUser?.isAuthenticated && canRoleAccessModule(currentUser.role, module);
 
-const AdminContext = createContext<AdminContextType | undefined>(undefined);
+  const canAccessRestrictedDocs = useMemo(
+    () => canAccessModule('documents'),
+    [currentUser, isLoggedIn]
+  );
 
-const ADMIN_DATA_STORAGE_KEY = 'ambientes_admin_data_v1';
+  const canViewFinancials = useMemo(
+    () => canAccessModule('financial'),
+    [currentUser, isLoggedIn]
+  );
 
-type PersistedAdminData = {
-  version: 1;
-  savedAt: string;
-  isDemoMode: boolean;
-  clients: Client[];
-  leads: Lead[];
-  quotes: CleaningQuote[];
-  contracts: Contract[];
-  serviceOrders: ServiceOrder[];
-  qualityInspections: QualityInspection[];
-  staff: StaffMember[];
-  teams: OperationalTeam[];
-  financialReceivables: FinancialEntry[];
-  expenses: ExpenseEntry[];
-  auditLogs: AuditLog[];
-  notifications: SystemNotification[];
-};
-
-export const AUTHORIZED_SUPER_ADMIN_EMAILS = [
-  'tramposshop@gmail.com',
-  'agtramposof@gmail.com',
-];
-
-export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Current user session - strictly verified against authorized super admins
-  const [currentUser, setCurrentUser] = useState<UserSession>(() => {
-    const saved = localStorage.getItem('ambientes_admin_user');
-    const isAuth = localStorage.getItem('ambientes_admin_auth') === 'true';
-    if (saved && isAuth) {
-      try {
-        const parsed = JSON.parse(saved);
-        const emailLower = (parsed?.email || '').toLowerCase().trim();
-        if (AUTHORIZED_SUPER_ADMIN_EMAILS.includes(emailLower)) {
-          return {
-            ...parsed,
-            role: 'SUPER_ADMIN',
-            isVerifiedAdminEmail: true,
-            isAuthenticated: true,
-          };
-        }
-      } catch {
-        // invalid cache
-      }
-    }
-    // Default: Unauthenticated
-    return {
-      id: 'usr-unauthenticated',
-      name: 'Super Administrador',
-      email: '',
-      role: 'SUPER_ADMIN',
-      isVerifiedAdminEmail: false,
-      isAuthenticated: false,
-    };
-  });
-
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const isAuth = localStorage.getItem('ambientes_admin_auth') === 'true';
-    const saved = localStorage.getItem('ambientes_admin_user');
-    if (isAuth && saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const emailLower = (parsed?.email || '').toLowerCase().trim();
-        return AUTHORIZED_SUPER_ADMIN_EMAILS.includes(emailLower);
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  });
-
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
-  const [activeModule, setActiveModule] = useState<AdminModule>('dashboard');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  // Core collections
-  const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
-  const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
-  const [quotes, setQuotes] = useState<CleaningQuote[]>(INITIAL_QUOTES);
-  const [contracts, setContracts] = useState<Contract[]>(INITIAL_CONTRACTS);
-  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>(INITIAL_SERVICE_ORDERS);
-  const [qualityInspections, setQualityInspections] = useState<QualityInspection[]>(INITIAL_QUALITY_INSPECTIONS);
-  const [staff, setStaff] = useState<StaffMember[]>(INITIAL_STAFF);
-  const [teams, setTeams] = useState<OperationalTeam[]>(INITIAL_TEAMS);
-  const [financialReceivables, setFinancialReceivables] = useState<FinancialEntry[]>(INITIAL_FINANCIAL_RECEIVABLES);
-  const [expenses, setExpenses] = useState<ExpenseEntry[]>(INITIAL_EXPENSES);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
-  const [notifications, setNotifications] = useState<SystemNotification[]>(INITIAL_NOTIFICATIONS);
-  const [dataHydrated, setDataHydrated] = useState(false);
-
-  // Restore operational data after reload. This is a browser-level persistence layer;
-  // production cloud persistence must still be handled by the backend/database.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ADMIN_DATA_STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<PersistedAdminData>;
-        if (Array.isArray(saved.clients)) setClients(saved.clients);
-        if (Array.isArray(saved.leads)) setLeads(saved.leads);
-        if (Array.isArray(saved.quotes)) setQuotes(saved.quotes);
-        if (Array.isArray(saved.contracts)) setContracts(saved.contracts);
-        if (Array.isArray(saved.serviceOrders)) setServiceOrders(saved.serviceOrders);
-        if (Array.isArray(saved.qualityInspections)) setQualityInspections(saved.qualityInspections);
-        if (Array.isArray(saved.staff)) setStaff(saved.staff);
-        if (Array.isArray(saved.teams)) setTeams(saved.teams);
-        if (Array.isArray(saved.financialReceivables)) setFinancialReceivables(saved.financialReceivables);
-        if (Array.isArray(saved.expenses)) setExpenses(saved.expenses);
-        if (Array.isArray(saved.auditLogs)) setAuditLogs(saved.auditLogs);
-        if (Array.isArray(saved.notifications)) setNotifications(saved.notifications);
-        if (typeof saved.isDemoMode === 'boolean') setIsDemoMode(saved.isDemoMode);
-      }
-    } catch (error) {
-      console.error('Falha ao restaurar dados locais do painel:', error);
-    } finally {
-      setDataHydrated(true);
-    }
-  }, []);
-
-  // Autosave all operational collections so CRUD changes are not lost on refresh.
-  useEffect(() => {
-    if (!dataHydrated) return;
-    const snapshot: PersistedAdminData = {
-      version: 1,
-      savedAt: new Date().toISOString(),
-      isDemoMode,
-      clients,
-      leads,
-      quotes,
-      contracts,
-      serviceOrders,
-      qualityInspections,
-      staff,
-      teams,
-      financialReceivables,
-      expenses,
-      auditLogs,
-      notifications,
-    };
-    try {
-      localStorage.setItem(ADMIN_DATA_STORAGE_KEY, JSON.stringify(snapshot));
-    } catch (error) {
-      console.error('Falha ao salvar dados locais do painel:', error);
-    }
-  }, [
-    dataHydrated,
-    isDemoMode,
-    clients,
-    leads,
-    quotes,
-    contracts,
-    serviceOrders,
-    qualityInspections,
-    staff,
-    teams,
-    financialReceivables,
-    expenses,
-    auditLogs,
-    notifications,
-  ]);
-
-  // Sync current user to localStorage
-  useEffect(() => {
-    if (isLoggedIn && currentUser?.isAuthenticated) {
-      localStorage.setItem('ambientes_admin_user', JSON.stringify(currentUser));
-      localStorage.setItem('ambientes_admin_auth', 'true');
-    } else {
-      localStorage.setItem('ambientes_admin_auth', 'false');
-    }
-  }, [currentUser, isLoggedIn]);
-
-  // Permissions
-  const canAccessRestrictedDocs = useMemo(() => {
-    if (!isLoggedIn || !currentUser?.isAuthenticated) return false;
-    const emailLower = (currentUser.email || '').toLowerCase().trim();
-    return AUTHORIZED_SUPER_ADMIN_EMAILS.includes(emailLower);
-  }, [currentUser, isLoggedIn]);
-
-  const canViewFinancials = useMemo(() => {
-    if (!isLoggedIn || !currentUser?.isAuthenticated) return false;
-    return true;
-  }, [currentUser, isLoggedIn]);
-
-  const canEditContracts = useMemo(() => {
-    if (!isLoggedIn || !currentUser?.isAuthenticated) return false;
-    return true;
-  }, [currentUser, isLoggedIn]);
+  const canEditContracts = useMemo(
+    () => canAccessModule('contracts') && !['COLABORADOR', 'SUPERVISOR', 'ATENDIMENTO'].includes(currentUser.role),
+    [currentUser, isLoggedIn]
+  );
 
   // Logging function
   const logAudit = (action: string, module: string, affectedRecord: string, details?: string) => {
@@ -328,66 +155,95 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  // Login handler strictly restricted to authorized Super Admins
-  const loginWithEmail = (email: string, pass: string) => {
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const cleanPass = (pass || '').trim();
-
-    // 1. Email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
-      return { success: false, message: 'Por favor, informe um endereço de e-mail válido.' };
-    }
-
-    // 2. Password check
-    if (!cleanPass || cleanPass.length < 3) {
-      return { success: false, message: 'Por favor, informe sua senha de acesso.' };
-    }
-
-    // 3. Strict Super Admin whitelist check: ONLY tramposshop@gmail.com and agtramposof@gmail.com
-    if (!AUTHORIZED_SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
-      logAudit('Tentativa de Acesso Negada', 'Segurança', cleanEmail, 'E-mail não autorizado na base Super Admin');
-      return {
-        success: false,
-        message: 'Acesso restrito. Este e-mail não possui autorização de Super Administrador.',
-      };
-    }
-
-    const adminUser: UserSession = {
-      id: cleanEmail === 'tramposshop@gmail.com' ? 'usr-admin-tramposshop' : 'usr-admin-agt',
-      name: cleanEmail === 'tramposshop@gmail.com' ? 'Administração Geral' : 'Administração Oficial',
-      email: cleanEmail,
+  const enterDemoMode = () => {
+    setIsDemoMode(true);
+    loadStoredMode(true);
+    const demoUser: UserSession = {
+      id: 'usr-demo-super-admin',
+      name: 'Demonstração — Proprietário',
+      email: 'demo@ambienteslimpos.local',
       role: 'SUPER_ADMIN',
-      isVerifiedAdminEmail: true,
+      isVerifiedAdminEmail: false,
       isAuthenticated: true,
     };
-
-    setCurrentUser(adminUser);
+    setCurrentUser(demoUser);
     setIsLoggedIn(true);
-    logAudit('Login Super Admin Verificado', 'Autenticação', cleanEmail, 'Acesso liberado com sucesso');
-    return { success: true, message: 'Autenticação de Super Administrador confirmada com sucesso!' };
+    setActiveModule('dashboard');
+  };
+
+  // Real mode authenticates against Firebase Authentication. No password is accepted locally.
+  const loginWithEmail = async (email: string, pass: string) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPass = pass || '';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      return { success: false, message: 'Informe um endereço de e-mail válido.' };
+    }
+    if (!cleanPass) {
+      return { success: false, message: 'Informe sua senha de acesso.' };
+    }
+    if (!AUTHORIZED_SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
+      return { success: false, message: 'Este usuário ainda não está autorizado para o ambiente Real.' };
+    }
+
+    try {
+      const credential = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
+      const verifiedEmail = (credential.user.email || '').toLowerCase();
+      if (!AUTHORIZED_SUPER_ADMIN_EMAILS.includes(verifiedEmail)) {
+        await firebaseSignOut(auth);
+        return { success: false, message: 'Usuário autenticado sem permissão para este ambiente.' };
+      }
+
+      const adminUser: UserSession = {
+        id: credential.user.uid,
+        name: verifiedEmail === 'tramposshop@gmail.com' ? 'Administração Geral' : 'Administração Oficial',
+        email: verifiedEmail,
+        role: 'SUPER_ADMIN',
+        isVerifiedAdminEmail: true,
+        isAuthenticated: true,
+      };
+
+      setIsDemoMode(false);
+      loadStoredMode(false);
+      setCurrentUser(adminUser);
+      setIsLoggedIn(true);
+      setActiveModule('dashboard');
+      return { success: true, message: 'Modo Real autenticado com segurança.' };
+    } catch (error) {
+      console.error('Falha de autenticação no Modo Real:', error);
+      return {
+        success: false,
+        message: 'Não foi possível autenticar. Verifique e-mail/senha e se Email/Password está habilitado no Firebase Authentication.',
+      };
+    }
   };
 
   const logout = () => {
-    if (currentUser?.email) {
-      logAudit('Logout Realizado', 'Autenticação', currentUser.email);
+    if (!isDemoMode) {
+      void firebaseSignOut(auth).catch(() => undefined);
     }
     setIsLoggedIn(false);
-    setCurrentUser((prev) => ({
-      ...prev,
+    setCurrentUser({
+      id: 'usr-unauthenticated',
+      name: 'Usuário',
+      email: '',
+      role: 'SUPER_ADMIN',
+      isVerifiedAdminEmail: false,
       isAuthenticated: false,
-    }));
-    localStorage.setItem('ambientes_admin_auth', 'false');
-    localStorage.removeItem('ambientes_admin_user');
+    });
+    setIsDemoMode(true);
+    setActiveModule('dashboard');
   };
 
   const switchUserRole = (role: UserRole) => {
-    setCurrentUser((prev) => ({
-      ...prev,
-      role,
-      isAuthenticated: true,
-    }));
-    logAudit('Alternou Perfil de Acesso', 'Segurança / RBAC', role);
+    if (!isDemoMode) {
+      logAudit('Troca de Perfil Bloqueada', 'Segurança / RBAC', role, 'Simulação de perfil disponível somente no Modo Demo');
+      return;
+    }
+    setCurrentUser((prev) => ({ ...prev, role, isAuthenticated: true }));
+    setActiveModule(defaultModuleForRole(role));
+    logAudit('Alternou Perfil de Demonstração', 'Segurança / RBAC', role);
   };
 
   // Smart Alerts
@@ -1139,35 +995,21 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
-  // Demo vs Real data reset
+  // Demo reset never touches the Real store. Real reset never touches the Demo store.
   const resetToDemoData = () => {
-    setClients(INITIAL_CLIENTS);
-    setLeads(INITIAL_LEADS);
-    setQuotes(INITIAL_QUOTES);
-    setContracts(INITIAL_CONTRACTS);
-    setServiceOrders(INITIAL_SERVICE_ORDERS);
-    setQualityInspections(INITIAL_QUALITY_INSPECTIONS);
-    setStaff(INITIAL_STAFF);
-    setTeams(INITIAL_TEAMS);
-    setFinancialReceivables(INITIAL_FINANCIAL_RECEIVABLES);
-    setExpenses(INITIAL_EXPENSES);
-    setAuditLogs(INITIAL_AUDIT_LOGS);
-    setNotifications(INITIAL_NOTIFICATIONS);
+    resetCollectionsToDemo();
     setIsDemoMode(true);
-    logAudit('Restaurou Dados Demonstrativos', 'Sistema', 'Todas as coleções');
+    logAudit('Restaurou Dados Demonstrativos', 'Sistema', 'Base Demo');
   };
 
   const clearAllData = () => {
-    setClients([]);
-    setLeads([]);
-    setQuotes([]);
-    setContracts([]);
-    setServiceOrders([]);
-    setQualityInspections([]);
-    setFinancialReceivables([]);
-    setExpenses([]);
-    setIsDemoMode(false);
-    logAudit('Limpeza de Dados Executada (Modo Real)', 'Sistema', 'Ambiente Zerado para Produção');
+    if (isDemoMode) {
+      resetCollectionsToDemo();
+      return;
+    }
+    resetCollectionsToReal();
+    localStorage.removeItem(REAL_DATA_STORAGE_KEY);
+    logAudit('Limpeza de Dados Executada', 'Sistema', 'Base Real');
   };
 
   return (
@@ -1177,6 +1019,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentUser,
         switchUserRole,
         loginWithEmail,
+        enterDemoMode,
         logout,
         isLoggedIn,
         isDemoMode,
@@ -1235,6 +1078,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         canAccessRestrictedDocs,
         canViewFinancials,
         canEditContracts,
+        canAccessModule,
       }}
     >
       {children}
