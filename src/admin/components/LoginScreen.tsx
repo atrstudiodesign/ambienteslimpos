@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, KeyRound, ArrowRight, ArrowLeft, Lock } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, ArrowLeft, Lock, PlayCircle } from 'lucide-react';
 import { AmbientesLimposLogo } from '../../components/AmbientesLimposLogo';
 import { useAdmin } from '../context/AdminContext';
 import { BRAND_CONFIG } from '../../config/brandConfig';
@@ -9,25 +9,20 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
-  const { loginWithEmail } = useAdmin();
+  const { loginWithEmail, enterDemoMode } = useAdmin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    setTimeout(() => {
-      const res = loginWithEmail(email, password);
-      setLoading(false);
-      if (!res.success) {
-        setError(res.message);
-      }
-    }, 350);
+    const res = await loginWithEmail(email, password);
+    setLoading(false);
+    if (!res.success) setError(res.message);
   };
 
   return (
@@ -87,7 +82,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
                 />
               </div>
               <p className="text-[10px] text-slate-400 mt-1">
-                Acesso restrito e exclusivo para Super Administradores cadastrados.
+                Modo Real: somente usuários previamente autorizados e autenticados.
               </p>
             </div>
 
@@ -135,7 +130,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
               className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <Lock className="w-4 h-4 text-slate-950" />
-              <span>{loading ? 'Validando Acesso...' : 'Entrar no Painel'}</span>
+              <span>{loading ? 'Validando Acesso...' : 'Entrar no Modo Real'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -143,7 +138,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
           {/* Security notice */}
           <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
             <p className="text-[10px] text-slate-400">
-              Ambiente protegido. Todas as tentativas de login são monitoradas e registradas em auditoria.
+              O Modo Real não aceita senha local: a autenticação é validada pelo Firebase Authentication.
             </p>
           </div>
         </div>

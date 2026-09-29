@@ -27,9 +27,9 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
     currentUser,
     switchUserRole,
     isDemoMode,
-    setIsDemoMode,
     resetToDemoData,
-    clearAllData,
+    enterDemoMode,
+    logout,
     setIsSearchOpen,
     notifications,
     unreadNotificationsCount,
@@ -153,8 +153,8 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
         <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
           <button
             onClick={() => {
-              setIsDemoMode(true);
-              resetToDemoData();
+              if (isDemoMode) resetToDemoData();
+              else enterDemoMode();
             }}
             className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
               isDemoMode
@@ -167,9 +167,8 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
           </button>
           <button
             onClick={() => {
-              if (window.confirm('Deseja iniciar em Modo Real? Os dados demonstrativos serão zerados para uso produtivo.')) {
-                setIsDemoMode(false);
-                clearAllData();
+              if (isDemoMode) {
+                if (window.confirm('Para entrar no Modo Real é obrigatório autenticar novamente com e-mail e senha. Continuar?')) logout();
               }
             }}
             className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
@@ -177,7 +176,7 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-700 hover:text-slate-900'
             }`}
-            title="Ambiente limpo para dados reais da empresa"
+            title="Modo Real protegido por autenticação"
           >
             Modo Real
           </button>
@@ -186,20 +185,20 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ onOpenMobileMenu, onBa
         {/* Quick RBAC Role Switcher */}
         <div className="relative">
           <button
-            onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
-            title="Alternar Perfil de Acesso (RBAC)"
+            onClick={() => isDemoMode && setRoleMenuOpen(!roleMenuOpen)}
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs font-bold transition-colors ${isDemoMode ? 'hover:bg-slate-100 cursor-pointer' : 'cursor-default opacity-80'}`}
+            title={isDemoMode ? 'Simular Perfil de Acesso (RBAC)' : 'Perfil RBAC definido pelo usuário autenticado'}
           >
             <ShieldCheck className="w-4 h-4 text-cyan-700" />
             <span className="hidden md:inline font-mono">{currentUser.role}</span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
           </button>
 
-          {roleMenuOpen && (
+          {roleMenuOpen && isDemoMode && (
             <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
               <div className="p-2 border-b border-slate-100 mb-1">
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">
-                  Simular Perfil de Acesso (RBAC)
+                  {isDemoMode ? 'Simular Perfil de Acesso (RBAC)' : 'Perfil de Acesso (RBAC)'}
                 </p>
                 <p className="text-xs text-slate-600 mt-0.5">
                   Teste o comportamento de permissões em tempo real.

@@ -46,6 +46,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     unreadNotificationsCount,
     canAccessRestrictedDocs,
     canViewFinancials,
+    canAccessModule,
   } = useAdmin();
 
   const navGroups: {
@@ -188,6 +189,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   ];
 
   const handleSelectModule = (moduleId: AdminModule) => {
+    if (!canAccessModule(moduleId)) return;
     setActiveModule(moduleId);
     if (onCloseMobile) onCloseMobile();
   };
@@ -230,7 +232,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <p className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">
                 {group.title}
               </p>
-              {group.items.map((item) => {
+              {group.items.filter((item) => canAccessModule(item.id)).map((item) => {
                 const Icon = item.icon;
                 const isActive = activeModule === item.id;
 
