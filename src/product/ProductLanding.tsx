@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import {
   ArrowRight, BadgeCheck, BarChart3, BriefcaseBusiness, CheckCircle2, ClipboardCheck,
   FileSignature, LayoutDashboard, LockKeyhole, MessageCircle, ShieldCheck, Sparkles,
-  UsersRound, WalletCards, Wrench, X
+  UsersRound, WalletCards, Wrench
 } from 'lucide-react';
 
 interface ProductLandingProps {
