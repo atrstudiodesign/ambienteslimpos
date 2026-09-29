@@ -110,6 +110,8 @@ interface AdminContextType {
   updateTeam: (team: OperationalTeam) => void;
 
   logAudit: (action: string, module: string, affectedRecord: string, details?: string) => void;
+  addAuditLog: (action: string, module: string, affectedRecord: string, details?: string) => void;
+  notify: (notification: Omit<SystemNotification, 'id' | 'timestamp' | 'isRead'>) => void;
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
 
@@ -120,6 +122,26 @@ interface AdminContextType {
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
+
+const ADMIN_DATA_STORAGE_KEY = 'ambientes_admin_data_v1';
+
+type PersistedAdminData = {
+  version: 1;
+  savedAt: string;
+  isDemoMode: boolean;
+  clients: Client[];
+  leads: Lead[];
+  quotes: CleaningQuote[];
+  contracts: Contract[];
+  serviceOrders: ServiceOrder[];
+  qualityInspections: QualityInspection[];
+  staff: StaffMember[];
+  teams: OperationalTeam[];
+  financialReceivables: FinancialEntry[];
+  expenses: ExpenseEntry[];
+  auditLogs: AuditLog[];
+  notifications: SystemNotification[];
+};
 
 export const AUTHORIZED_SUPER_ADMIN_EMAILS = [
   'tramposshop@gmail.com',
@@ -190,6 +212,77 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [expenses, setExpenses] = useState<ExpenseEntry[]>(INITIAL_EXPENSES);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
   const [notifications, setNotifications] = useState<SystemNotification[]>(INITIAL_NOTIFICATIONS);
+  const [dataHydrated, setDataHydrated] = useState(false);
+
+  // Restore operational data after reload. This is a browser-level persistence layer;
+  // production cloud persistence must still be handled by the backend/database.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_DATA_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<PersistedAdminData>;
+        if (Array.isArray(saved.clients)) setClients(saved.clients);
+        if (Array.isArray(saved.leads)) setLeads(saved.leads);
+        if (Array.isArray(saved.quotes)) setQuotes(saved.quotes);
+        if (Array.isArray(saved.contracts)) setContracts(saved.contracts);
+        if (Array.isArray(saved.serviceOrders)) setServiceOrders(saved.serviceOrders);
+        if (Array.isArray(saved.qualityInspections)) setQualityInspections(saved.qualityInspections);
+        if (Array.isArray(saved.staff)) setStaff(saved.staff);
+        if (Array.isArray(saved.teams)) setTeams(saved.teams);
+        if (Array.isArray(saved.financialReceivables)) setFinancialReceivables(saved.financialReceivables);
+        if (Array.isArray(saved.expenses)) setExpenses(saved.expenses);
+        if (Array.isArray(saved.auditLogs)) setAuditLogs(saved.auditLogs);
+        if (Array.isArray(saved.notifications)) setNotifications(saved.notifications);
+        if (typeof saved.isDemoMode === 'boolean') setIsDemoMode(saved.isDemoMode);
+      }
+    } catch (error) {
+      console.error('Falha ao restaurar dados locais do painel:', error);
+    } finally {
+      setDataHydrated(true);
+    }
+  }, []);
+
+  // Autosave all operational collections so CRUD changes are not lost on refresh.
+  useEffect(() => {
+    if (!dataHydrated) return;
+    const snapshot: PersistedAdminData = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      isDemoMode,
+      clients,
+      leads,
+      quotes,
+      contracts,
+      serviceOrders,
+      qualityInspections,
+      staff,
+      teams,
+      financialReceivables,
+      expenses,
+      auditLogs,
+      notifications,
+    };
+    try {
+      localStorage.setItem(ADMIN_DATA_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+      console.error('Falha ao salvar dados locais do painel:', error);
+    }
+  }, [
+    dataHydrated,
+    isDemoMode,
+    clients,
+    leads,
+    quotes,
+    contracts,
+    serviceOrders,
+    qualityInspections,
+    staff,
+    teams,
+    financialReceivables,
+    expenses,
+    auditLogs,
+    notifications,
+  ]);
 
   // Sync current user to localStorage
   useEffect(() => {
@@ -230,7 +323,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       module,
       affectedRecord,
       details,
-      ipAddress: '189.120.45.' + Math.floor(Math.random() * 80 + 10),
+      ipAddress: undefined,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
   };
@@ -1024,6 +1117,20 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Notifications
+  const addAuditLog = (action: string, module: string, affectedRecord: string, details?: string) => {
+    logAudit(action, module, affectedRecord, details);
+  };
+
+  const notify = (notification: Omit<SystemNotification, 'id' | 'timestamp' | 'isRead'>) => {
+    const newNotification: SystemNotification = {
+      ...notification,
+      id: `not-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: new Date().toLocaleString('pt-BR'),
+      isRead: false,
+    };
+    setNotifications((prev) => [newNotification, ...prev].slice(0, 250));
+  };
+
   const markNotificationAsRead = (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
   };
@@ -1121,6 +1228,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addTeam,
         updateTeam,
         logAudit,
+        addAuditLog,
+        notify,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         canAccessRestrictedDocs,
