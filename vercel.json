@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/sistema", "destination": "/" },
+    { "source": "/sistema/:path*", "destination": "/" }
+  ]
+}
