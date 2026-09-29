@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { GoogleAuthProvider, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../../services/googleSheetsService';
 import { canRoleAccessModule, defaultModuleForRole } from '../rbac';
 import {
@@ -43,6 +43,8 @@ interface AdminContextType {
   setCurrentUser: (user: UserSession) => void;
   switchUserRole: (role: UserRole) => void;
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; message: string }>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
   enterDemoMode: () => void;
   logout: () => void;
   isLoggedIn: boolean;
@@ -309,6 +311,25 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveModule('dashboard');
   };
 
+  const establishRealSession = (uid: string, verifiedEmail: string) => {
+    setIsDemoMode(false);
+    loadStoredMode(false);
+    setCurrentUser({
+      id: uid,
+      name: verifiedEmail === 'agtramposof@gmail.com'
+        ? 'Administração ATR Studio'
+        : verifiedEmail === 'tramposshop@gmail.com'
+          ? 'Administração Geral'
+          : 'Administração Oficial',
+      email: verifiedEmail,
+      role: 'SUPER_ADMIN',
+      isVerifiedAdminEmail: true,
+      isAuthenticated: true,
+    });
+    setIsLoggedIn(true);
+    setActiveModule('dashboard');
+  };
+
   const loginWithEmail = async (email: string, pass: string) => {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPass = pass || '';
@@ -316,8 +337,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!cleanEmail || !emailRegex.test(cleanEmail)) return { success: false, message: 'Informe um e-mail válido.' };
     if (!cleanPass) return { success: false, message: 'Informe sua senha de acesso.' };
     if (!AUTHORIZED_SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
-      return { success: false, message: 'Este usuário ainda não está autorizado para o ambiente Real.' };
+      return { success: false, message: 'Este usuário não está autorizado para o ambiente Real.' };
     }
+
     try {
       const credential = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
       const verifiedEmail = (credential.user.email || '').toLowerCase();
@@ -325,22 +347,61 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await firebaseSignOut(auth);
         return { success: false, message: 'Usuário autenticado sem permissão para este ambiente.' };
       }
-      setIsDemoMode(false);
-      loadStoredMode(false);
-      setCurrentUser({
-        id: credential.user.uid,
-        name: verifiedEmail === 'tramposshop@gmail.com' ? 'Administração Geral' : 'Administração Oficial',
-        email: verifiedEmail,
-        role: 'SUPER_ADMIN',
-        isVerifiedAdminEmail: true,
-        isAuthenticated: true,
-      });
-      setIsLoggedIn(true);
-      setActiveModule('dashboard');
+      establishRealSession(credential.user.uid, verifiedEmail);
       return { success: true, message: 'Modo Real autenticado com segurança.' };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Falha de autenticação no Modo Real:', error);
-      return { success: false, message: 'Falha na autenticação. Confira e-mail/senha e a configuração Email/Password do Firebase.' };
+      const code = String(error?.code || '');
+      if (code === 'auth/operation-not-allowed') {
+        return { success: false, message: 'Login por senha ainda não está habilitado no Firebase. Use “Entrar com Google” com o e-mail autorizado.' };
+      }
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+        return { success: false, message: 'A conta está autorizada, mas não existe uma credencial Email/Senha válida no Firebase. Use “Entrar com Google” ou redefina a senha do usuário Firebase.' };
+      }
+      if (code === 'auth/too-many-requests') {
+        return { success: false, message: 'Muitas tentativas de login. Aguarde alguns minutos ou use o acesso Google.' };
+      }
+      return { success: false, message: 'Não foi possível autenticar por senha. Use o acesso Google com a conta autorizada.' };
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account', login_hint: 'agtramposof@gmail.com' });
+    try {
+      const credential = await signInWithPopup(auth, provider);
+      const verifiedEmail = (credential.user.email || '').trim().toLowerCase();
+      if (!AUTHORIZED_SUPER_ADMIN_EMAILS.includes(verifiedEmail)) {
+        await firebaseSignOut(auth);
+        return { success: false, message: `A conta ${verifiedEmail || 'selecionada'} não está autorizada para o Modo Real.` };
+      }
+      establishRealSession(credential.user.uid, verifiedEmail);
+      return { success: true, message: 'Modo Real autenticado com Google.' };
+    } catch (error: any) {
+      console.error('Falha de autenticação Google:', error);
+      const code = String(error?.code || '');
+      if (code === 'auth/popup-closed-by-user') return { success: false, message: 'A janela de login do Google foi fechada antes da autenticação.' };
+      if (code === 'auth/operation-not-allowed') return { success: false, message: 'O provedor Google precisa ser habilitado no Firebase Authentication.' };
+      if (code === 'auth/unauthorized-domain') return { success: false, message: 'Este domínio precisa ser autorizado no Firebase Authentication.' };
+      return { success: false, message: 'Falha no acesso Google. Verifique a configuração do Firebase Authentication.' };
+    }
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!AUTHORIZED_SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
+      return { success: false, message: 'Informe um e-mail autorizado antes de solicitar a redefinição.' };
+    }
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      return { success: true, message: 'E-mail de redefinição solicitado. Confira sua caixa de entrada e spam.' };
+    } catch (error: any) {
+      console.error('Falha ao solicitar redefinição de senha:', error);
+      const code = String(error?.code || '');
+      if (code === 'auth/operation-not-allowed') {
+        return { success: false, message: 'Email/Senha ainda não está habilitado no Firebase. Use o acesso Google.' };
+      }
+      return { success: false, message: 'Não foi possível enviar a redefinição. Use o acesso Google ou confira o usuário no Firebase.' };
     }
   };
 
@@ -1138,6 +1199,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentUser,
         switchUserRole,
         loginWithEmail,
+        loginWithGoogle,
+        requestPasswordReset,
         enterDemoMode,
         logout,
         isLoggedIn,
