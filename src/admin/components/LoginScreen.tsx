@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, KeyRound, ArrowRight, ArrowLeft, Lock, PlayCircle } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, ArrowLeft, Lock } from 'lucide-react';
 import { AmbientesLimposLogo } from '../../components/AmbientesLimposLogo';
 import { useAdmin } from '../context/AdminContext';
 import { BRAND_CONFIG } from '../../config/brandConfig';
@@ -9,12 +9,14 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
-  const { loginWithEmail, enterDemoMode } = useAdmin();
+  const { loginWithEmail, loginWithGoogle, requestPasswordReset } = useAdmin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [notice, setNotice] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +26,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
     setLoading(false);
     if (!res.success) setError(res.message);
   };
+  const handleGoogleLogin = async () => {
+    setError('');
+    setNotice('');
+    setGoogleLoading(true);
+    const res = await loginWithGoogle();
+    setGoogleLoading(false);
+    if (!res.success) setError(res.message);
+  };
+
+  const handlePasswordReset = async () => {
+    setError('');
+    setNotice('');
+    if (!email.trim()) {
+      setError('Digite primeiro o e-mail autorizado no campo acima.');
+      return;
+    }
+    const res = await requestPasswordReset(email);
+    if (res.success) setNotice(res.message);
+    else setError(res.message);
+  };
+
 
   return (
     <div className="min-h-screen bg-[#08182f] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -64,6 +87,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
                 {error}
               </div>
             )}
+            {notice && (
+              <div className="p-3 bg-emerald-950/50 border border-emerald-800 rounded-xl text-emerald-300 text-xs font-semibold">
+                {notice}
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
@@ -76,7 +104,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@exemplo.com"
+                  placeholder="agtramposof@gmail.com"
                   autoComplete="email"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
                 />
@@ -117,7 +145,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
 
               <button
                 type="button"
-                onClick={() => alert(`Para redefinição de senha, entre em contato com o suporte: ${BRAND_CONFIG.contacts.whatsappCommercial}`)}
+                onClick={handlePasswordReset}
                 className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors cursor-pointer"
               >
                 Esqueci minha senha
@@ -133,12 +161,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBackToSite }) => {
               <span>{loading ? 'Validando Acesso...' : 'Entrar no Modo Real'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="h-px flex-1 bg-slate-800" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ou</span>
+              <div className="h-px flex-1 bg-slate-800" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="w-full py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <span className="text-base font-black text-blue-600">G</span>
+              <span>{googleLoading ? 'Abrindo Google...' : 'Entrar com Google'}</span>
+            </button>
+            <p className="text-[10px] text-center text-slate-500">
+              Use a conta autorizada agtramposof@gmail.com ou outro Super Admin cadastrado.
+            </p>
           </form>
 
           {/* Security notice */}
           <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
             <p className="text-[10px] text-slate-400">
-              O Modo Real não aceita senha local: a autenticação é validada pelo Firebase Authentication.
+              O Modo Real aceita somente autenticação validada pelo Firebase. A senha do painel é a credencial do usuário Firebase — não necessariamente a senha da sua conta Gmail.
             </p>
           </div>
         </div>
