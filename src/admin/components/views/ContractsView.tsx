@@ -43,33 +43,47 @@ export const ContractsView: React.FC = () => {
 
   const filteredContracts = contracts.filter(
     (c) =>
-      c.contractNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+      (c.contractNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.clientName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getContractClauses = (contract: Contract): string[] => [
+    `Objeto: ${contract.scope || contract.serviceType || 'Prestação de serviços de limpeza profissional.'}`,
+    `Frequência e jornada: ${contract.frequency || 'Conforme programação'} — ${contract.scheduledDays || 'dias a definir'}, ${contract.scheduledHours || 'horário a definir'}.`,
+    `Pagamento: R$ ${Number(contract.monthlyValue || 0).toFixed(2)} por mês via ${contract.paymentMethod || 'meio acordado'}, com vencimento no dia ${contract.paymentDueDay || 10}.`,
+    `SLA operacional: ${contract.slaTerms || 'Conforme condições operacionais acordadas entre as partes.'}`,
+    `Reajuste: ${contract.adjustmentIndex || 'conforme contrato'}, com próxima referência em ${contract.nextAdjustmentDate || 'data a definir'}.`,
+  ];
 
   const handleCreateContract = (e: React.FormEvent) => {
     e.preventDefault();
     const client = clients.find((c) => c.id === clientId);
 
-    addContract({
+    const location = client?.locations?.[0];
+
+    const created = addContract({
       clientId,
       clientName: client ? client.name : 'Cliente Contratante',
+      clientDocument: client?.document || '',
+      locationId: location?.id || '',
+      locationAddress: location?.address || 'São Paulo - SP',
       serviceType,
+      scope: `Prestação contínua de ${serviceType.toLowerCase()} conforme escopo aprovado pelo cliente.`,
       startDate,
       endDate,
       monthlyValue,
       paymentDueDay,
       frequency,
+      scheduledDays: frequency,
+      scheduledHours: location?.preferredHours || 'A combinar',
+      paymentMethod: 'Boleto Bancário',
       status: 'Ativo',
-      adjustmentIndex: 'IPCA / Anual',
-      cancellationNoticeDays: 30,
-      clauses: [
-        'Objeto: Prestação contínua de serviços de limpeza profissional técnica nas dependências da contratante.',
-        'SLA de Reposição: Em caso de falta de colaborador por motivos de força maior, reposição garantida em até 2 horas.',
-        'Materiais e Equipamentos: Produtos profissionais saneantes registrados na ANVISA e maquinário por conta da contratada.',
-        'Pagamento: Todo dia 10 de cada mês mediante emissão de nota fiscal eletrônica.',
-      ],
+      adjustmentIndex: 'IPCA',
+      nextAdjustmentDate: endDate,
+      slaTerms: 'Em caso de ausência operacional comunicada, a equipe responsável providenciará reposição conforme disponibilidade e condições contratuais.',
     });
+
+    setSelectedContract(created);
 
     setIsNewContractModalOpen(false);
   };
@@ -143,7 +157,7 @@ export const ContractsView: React.FC = () => {
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         ctr.status === 'Ativo'
                           ? 'bg-emerald-100 text-emerald-800'
-                          : ctr.status === 'Em renovação'
+                          : ctr.status === 'Em Renovação'
                           ? 'bg-amber-100 text-amber-800 animate-pulse'
                           : 'bg-slate-100 text-slate-700'
                       }`}
@@ -262,8 +276,8 @@ export const ContractsView: React.FC = () => {
                     Reajuste e Governança:
                   </strong>
                   <div className="text-cyan-900 mt-1">
-                    Índice: {selectedContract.adjustmentIndex} • Aviso de Rescisão:{' '}
-                    {selectedContract.cancellationNoticeDays} dias
+                    Índice: {selectedContract.adjustmentIndex} • Próximo reajuste:{' '}
+                    {selectedContract.nextAdjustmentDate || 'A definir'}
                   </div>
                 </div>
 
@@ -293,7 +307,7 @@ export const ContractsView: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  {selectedContract.clauses.map((clause, idx) => (
+                  {getContractClauses(selectedContract).map((clause, idx) => (
                     <div
                       key={idx}
                       className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 leading-relaxed font-medium"
